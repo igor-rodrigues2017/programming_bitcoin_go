@@ -22,7 +22,9 @@ func (f FieldElement) Equal(other FieldElement) bool {
 }
 
 func (f FieldElement) Pow(pow *big.Int) (FieldElement, error) {
-	result := new(big.Int).Exp(f.Number, pow, f.Prime)
+	expMod := new(big.Int).Sub(f.Prime, big.NewInt(1))
+	n := new(big.Int).Mod(pow, expMod)
+	result := new(big.Int).Exp(f.Number, n, f.Prime)
 	return NewFieldElement(result, f.Prime)
 }
 
@@ -54,5 +56,14 @@ func (f *FieldElement) Add(f2 FieldElement) (FieldElement, error) {
 	}
 	result := new(big.Int).Add(f.Number, f2.Number)
 	result.Mod(result, f.Prime)
+	return NewFieldElement(result, f.Prime)
+}
+
+func (f FieldElement) Div(f2 FieldElement) (FieldElement, error) {
+	if f.Prime.Cmp(f2.Prime) != 0 {
+		return FieldElement{}, errors.New("cannot add two numbers in different field")
+	}
+	inverse := new(big.Int).Exp(f2.Number, new(big.Int).Sub(f.Prime, big.NewInt(2)), f.Prime)
+	result := new(big.Int).Mod(new(big.Int).Mul(f.Number, inverse), f.Prime)
 	return NewFieldElement(result, f.Prime)
 }

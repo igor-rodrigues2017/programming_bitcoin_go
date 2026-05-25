@@ -73,7 +73,8 @@ func TestSumElements(t *testing.T) {
 		},
 		{
 			"Should return an error when are Fields different",
-			fe(7, 19), fe(8, 23), criptography.FieldElement{},
+			fe(7, 19), fe(8, 23),
+			criptography.FieldElement{},
 			true,
 		},
 	}
@@ -112,7 +113,8 @@ func TestSubElements(t *testing.T) {
 		},
 		{
 			"Should return an error when are Fields different",
-			fe(7, 19), fe(8, 23), criptography.FieldElement{},
+			fe(7, 19), fe(8, 23),
+			criptography.FieldElement{},
 			true,
 		},
 	}
@@ -151,7 +153,8 @@ func TestMultElements(t *testing.T) {
 		},
 		{
 			"Should return an error when are Fields different",
-			fe(7, 19), fe(8, 23), criptography.FieldElement{},
+			fe(7, 19), fe(8, 23),
+			criptography.FieldElement{},
 			true,
 		},
 	}
@@ -204,6 +207,40 @@ func TestPowElements(t *testing.T) {
 			}
 			if !got.Equal(tt.want) {
 				t.Errorf("pow() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDivElements(t *testing.T) {
+	testCases := []struct {
+		name     string
+		element1 criptography.FieldElement
+		divisor  criptography.FieldElement
+		want     criptography.FieldElement
+		wantErr  bool
+	}{
+		{
+			"Should division field element without errors",
+			fe(2, 19), fe(7, 19), fe(3, 19),
+			false,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := tt.element1.Div(tt.divisor)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("div() elements failed: %v,", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("div() succeeded unexpectedly")
+			}
+			if !got.Equal(tt.want) {
+				t.Errorf("div() = %v, want %v", got, tt.want)
 			}
 		})
 	}
