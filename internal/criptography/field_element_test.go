@@ -1,15 +1,20 @@
 package criptography_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/igor-rodrigues2017/programming_bitcoin_go/internal/criptography"
 )
 
+func fe(number, prime int64) criptography.FieldElement {
+	f, _ := criptography.NewFieldElement(big.NewInt(number), big.NewInt(prime))
+	return f
+}
+
 func TestNewFieldElement(t *testing.T) {
 	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for target function.
+		name    string
 		number  int64
 		prime   int64
 		want    criptography.FieldElement
@@ -17,29 +22,26 @@ func TestNewFieldElement(t *testing.T) {
 	}{
 		{
 			"Should Return a FieldElement without errors",
-			7,
-			13,
-			criptography.FieldElement{7, 13},
+			7, 13,
+			fe(7, 13),
 			false,
 		},
 		{
 			"Should Return an error when number is bigger than prime",
-			32,
-			13,
+			32, 13,
 			criptography.FieldElement{},
 			true,
 		},
 		{
 			"Should Return an error when number is shorter than zero",
-			-1,
-			13,
-			criptography.FieldElement{7, 13},
+			-1, 13,
+			criptography.FieldElement{},
 			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := criptography.NewFieldElement(tt.number, tt.prime)
+			got, gotErr := criptography.NewFieldElement(big.NewInt(tt.number), big.NewInt(tt.prime))
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("NewFieldElement() failed: %v", gotErr)
@@ -49,7 +51,7 @@ func TestNewFieldElement(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("NewFieldElement() succeeded unexpectedly")
 			}
-			if got != tt.want {
+			if !got.Equal(tt.want) {
 				t.Errorf("NewFieldElement() = %v, want %v", got, tt.want)
 			}
 		})
@@ -66,17 +68,12 @@ func TestSumElements(t *testing.T) {
 	}{
 		{
 			"Should sum two fields without errors",
-			criptography.FieldElement{7, 19},
-			criptography.FieldElement{8, 19},
-			criptography.FieldElement{15, 19},
+			fe(7, 19), fe(8, 19), fe(15, 19),
 			false,
 		},
 		{
 			"Should return an error when are Fields different",
-
-			criptography.FieldElement{7, 19},
-			criptography.FieldElement{8, 23},
-			criptography.FieldElement{},
+			fe(7, 19), fe(8, 23), criptography.FieldElement{},
 			true,
 		},
 	}
@@ -93,7 +90,7 @@ func TestSumElements(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("Add() succeeded unexpectedly")
 			}
-			if got != tt.want {
+			if !got.Equal(tt.want) {
 				t.Errorf("Add() = %v, want %v", got, tt.want)
 			}
 		})
@@ -110,17 +107,12 @@ func TestSubElements(t *testing.T) {
 	}{
 		{
 			"Should sub two fields without errors",
-			criptography.FieldElement{7, 19},
-			criptography.FieldElement{8, 19},
-			criptography.FieldElement{18, 19},
+			fe(7, 19), fe(8, 19), fe(18, 19),
 			false,
 		},
 		{
 			"Should return an error when are Fields different",
-
-			criptography.FieldElement{7, 19},
-			criptography.FieldElement{8, 23},
-			criptography.FieldElement{},
+			fe(7, 19), fe(8, 23), criptography.FieldElement{},
 			true,
 		},
 	}
@@ -137,7 +129,7 @@ func TestSubElements(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("Sub() succeeded unexpectedly")
 			}
-			if got != tt.want {
+			if !got.Equal(tt.want) {
 				t.Errorf("Sub() = %v, want %v", got, tt.want)
 			}
 		})
@@ -153,18 +145,13 @@ func TestMultElements(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			"Should sub two fields without errors",
-			criptography.FieldElement{3, 13},
-			criptography.FieldElement{12, 13},
-			criptography.FieldElement{10, 13},
+			"Should mult two fields without errors",
+			fe(3, 13), fe(12, 13), fe(10, 13),
 			false,
 		},
 		{
 			"Should return an error when are Fields different",
-
-			criptography.FieldElement{7, 19},
-			criptography.FieldElement{8, 23},
-			criptography.FieldElement{},
+			fe(7, 19), fe(8, 23), criptography.FieldElement{},
 			true,
 		},
 	}
@@ -181,7 +168,7 @@ func TestMultElements(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("Mult() succeeded unexpectedly")
 			}
-			if got != tt.want {
+			if !got.Equal(tt.want) {
 				t.Errorf("Mult() = %v, want %v", got, tt.want)
 			}
 		})
@@ -197,17 +184,15 @@ func TestPowElements(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			"Should sub two fields without errors",
-			criptography.FieldElement{3, 13},
-			3,
-			criptography.FieldElement{1, 13},
+			"Should pow field element without errors",
+			fe(3, 13), 3, fe(1, 13),
 			false,
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := tt.element1.Pow(tt.pow)
+			got, gotErr := tt.element1.Pow(big.NewInt(tt.pow))
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("pow() elements failed: %v,", gotErr)
@@ -217,7 +202,7 @@ func TestPowElements(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("pow() succeeded unexpectedly")
 			}
-			if got != tt.want {
+			if !got.Equal(tt.want) {
 				t.Errorf("pow() = %v, want %v", got, tt.want)
 			}
 		})
