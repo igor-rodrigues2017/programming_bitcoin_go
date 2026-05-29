@@ -5,6 +5,13 @@ import (
 	"math/big"
 )
 
+var (
+	ErrNilCoordinates  = errors.New("use NewPointAtInfinity for points at infinity")
+	ErrNotOnCurve      = errors.New("point is not on the curve")
+	ErrNilCurveParams  = errors.New("a and b must not be nil")
+	ErrDifferentCurves = errors.New("points are not on the same curve")
+)
+
 type Point struct {
 	a *big.Int
 	b *big.Int
@@ -13,6 +20,9 @@ type Point struct {
 }
 
 func NewPoint(a, b, x, y *big.Int) (Point, error) {
+	if x == nil || y == nil {
+		return Point{}, ErrNilCoordinates
+	}
 	p := Point{
 		a: new(big.Int).Set(a),
 		b: new(big.Int).Set(b),
@@ -20,19 +30,51 @@ func NewPoint(a, b, x, y *big.Int) (Point, error) {
 		y: new(big.Int).Set(y),
 	}
 	if !p.IsOnCurve() {
-		return Point{}, errors.New("point is not on the curve")
+		return Point{}, ErrNotOnCurve
 	}
 	return p, nil
 }
 
-func (p Point) Equal(other Point) bool {
-	return p.a.Cmp(other.a) == 0 &&
-		p.b.Cmp(other.b) == 0 &&
-		p.x.Cmp(other.x) == 0 &&
-		p.y.Cmp(other.y) == 0
+func NewPointAtInfinity(a, b *big.Int) (Point, error) {
+	if a == nil || b == nil {
+		return Point{}, ErrNilCurveParams
+	}
+	return Point{
+		a: new(big.Int).Set(a),
+		b: new(big.Int).Set(b),
+	}, nil
 }
 
-func (p Point) IsOnCurve() bool {
+func (p *Point) Add(other Point) (Point, error) {
+	if p.a.Cmp(other.a) != 0 || p.b.Cmp(other.b) != 0 {
+		return Point{}, ErrDifferentCurves
+	}
+	if p.x == nil {
+		return other, nil
+	}
+	if other.x == nil {
+		return *p, nil
+	}
+	if p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) != 0 {
+		return NewPointAtInfinity(p.a, p.b)
+	}
+	return Point{}, errors.New("not implemented")
+}
+
+func (p *Point) Equal(other Point) bool {
+	if p.a.Cmp(other.a) != 0 || p.b.Cmp(other.b) != 0 {
+		return false
+	}
+	if p.x == nil && other.x == nil {
+		return true
+	}
+	if p.x == nil || other.x == nil {
+		return false
+	}
+	return p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) == 0
+}
+
+func (p *Point) IsOnCurve() bool {
 	lhs := new(big.Int).Mul(p.y, p.y)
 
 	x3 := new(big.Int).Mul(p.x, p.x)
