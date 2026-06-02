@@ -58,7 +58,18 @@ func (p *Point) Add(other Point) (Point, error) {
 	if p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) != 0 {
 		return NewPointAtInfinity(p.a, p.b)
 	}
-	return Point{}, errors.New("not implemented")
+
+	diffY := new(big.Int).Sub(other.y, p.y)
+	diffX := new(big.Int).Sub(other.x, p.x)
+	s := diffY.Div(diffY, diffX)
+
+	x3 := new(big.Int).Mul(s, s)
+	x3.Sub(x3, p.x).Sub(x3, other.x)
+
+	y3 := new(big.Int).Mul(s, new(big.Int).Sub(p.x, x3))
+	y3.Sub(y3, p.y)
+
+	return NewPoint(new(big.Int).Set(p.a), new(big.Int).Set(p.b), x3, y3)
 }
 
 func (p *Point) Equal(other Point) bool {

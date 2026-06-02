@@ -126,6 +126,13 @@ func TestAdditionPoint(t *testing.T) {
 			ptInf(big.NewInt(5), big.NewInt(7)),
 			false,
 		},
+		{
+			"Should add without error Points for when x are differents",
+			pt(big.NewInt(5), big.NewInt(7), big.NewInt(2), big.NewInt(5)),
+			pt(big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1)),
+			pt(big.NewInt(5), big.NewInt(7), big.NewInt(3), big.NewInt(-7)),
+			false,
+		},
 	}
 
 	for _, tt := range tests {
