@@ -45,6 +45,24 @@ func NewPointAtInfinity(a, b *big.Int) (Point, error) {
 	}, nil
 }
 
+func (p *Point) tangentSlope(s *big.Int) *big.Int {
+	quo := new(big.Int).Mul(p.x, p.x)
+	quo.Mul(quo, big.NewInt(3))
+	quo.Add(quo, p.a)
+	div := new(big.Int).Mul(p.y, big.NewInt(2))
+	s = new(big.Int).Div(quo, div)
+
+	return s
+}
+
+func (p *Point) slope(other Point, s *big.Int) *big.Int {
+	diffY := new(big.Int).Sub(other.y, p.y)
+	diffX := new(big.Int).Sub(other.x, p.x)
+	s = diffY.Div(diffY, diffX)
+
+	return s
+}
+
 func (p *Point) Add(other Point) (Point, error) {
 	if p.a.Cmp(other.a) != 0 || p.b.Cmp(other.b) != 0 {
 		return Point{}, ErrDifferentCurves
@@ -59,9 +77,13 @@ func (p *Point) Add(other Point) (Point, error) {
 		return NewPointAtInfinity(p.a, p.b)
 	}
 
-	diffY := new(big.Int).Sub(other.y, p.y)
-	diffX := new(big.Int).Sub(other.x, p.x)
-	s := diffY.Div(diffY, diffX)
+	var s *big.Int
+
+	if p.Equal(other) {
+		s = p.tangentSlope(s)
+	} else {
+		s = p.slope(other, s)
+	}
 
 	x3 := new(big.Int).Mul(s, s)
 	x3.Sub(x3, p.x).Sub(x3, other.x)

@@ -133,6 +133,13 @@ func TestAdditionPoint(t *testing.T) {
 			pt(big.NewInt(5), big.NewInt(7), big.NewInt(3), big.NewInt(-7)),
 			false,
 		},
+		{
+			"Should add without error the same point",
+			pt(big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1)),
+			pt(big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1)),
+			pt(big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(77)),
+			false,
+		},
 	}
 
 	for _, tt := range tests {
