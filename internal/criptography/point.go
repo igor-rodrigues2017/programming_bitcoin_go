@@ -73,7 +73,7 @@ func (p *Point) Add(other Point) (Point, error) {
 	if other.x == nil {
 		return *p, nil
 	}
-	if p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) != 0 {
+	if (p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) != 0) || (p.Equal(other) && p.y.Cmp(big.NewInt(0)) == 0) {
 		return NewPointAtInfinity(p.a, p.b)
 	}
 
