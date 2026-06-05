@@ -1,51 +1,52 @@
 package criptography_test
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/igor-rodrigues2017/programming_bitcoin_go/internal/criptography"
 )
 
-func pt(a, b, x, y *big.Int) criptography.Point {
-	p, _ := criptography.NewPoint(a, b, x, y)
+const testPrime = int64(10007)
+
+// fprime cria um FieldElement no campo testPrime, aceitando negativos via redução modular.
+// Ex: fprime(-1) → 10006, porque -1 ≡ p-1 (mod p).
+func fprime(n int64) criptography.FieldElement {
+	p := int64(testPrime)
+	return fe(((n%p)+p)%p, testPrime)
+}
+
+func pt(a, b, x, y int64) criptography.Point {
+	p, _ := criptography.NewPoint(fprime(a), fprime(b), fprime(x), fprime(y))
 	return p
 }
 
-func ptInf(a, b *big.Int) criptography.Point {
-	p, _ := criptography.NewPointAtInfinity(a, b)
-	return p
+func ptInf(a, b int64) criptography.Point {
+	return criptography.NewPointAtInfinity(fprime(a), fprime(b))
 }
 
 func TestNewPoint(t *testing.T) {
 	tests := []struct {
 		name    string
-		a, b    *big.Int
-		x, y    *big.Int
+		a, b    int64
+		x, y    int64
 		want    criptography.Point
 		wantErr bool
 	}{
 		{
 			"Should create a valid point without errors",
-			big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1)),
+			5, 7, -1, -1,
+			pt(5, 7, -1, -1),
 			false,
 		},
 		{
 			"Should create another valid point without errors",
-			big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(77),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(77)),
+			5, 7, 18, 77,
+			pt(5, 7, 18, 77),
 			false,
 		},
 		{
 			"Should return error when point is not on the curve",
-			big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-2),
-			criptography.Point{},
-			true,
-		},
-		{
-			"Should not create the point at infinity when x and y is nil ",
-			big.NewInt(5), big.NewInt(7), nil, nil,
+			5, 7, -1, -2,
 			criptography.Point{},
 			true,
 		},
@@ -53,7 +54,7 @@ func TestNewPoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := criptography.NewPoint(tt.a, tt.b, tt.x, tt.y)
+			got, gotErr := criptography.NewPoint(fprime(tt.a), fprime(tt.b), fprime(tt.x), fprime(tt.y))
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("NewPoint() failed: %v", gotErr)
@@ -71,36 +72,10 @@ func TestNewPoint(t *testing.T) {
 }
 
 func TestNewPointAtInfinity(t *testing.T) {
-	tests := []struct {
-		name    string
-		a, b    *big.Int
-		wantErr bool
-	}{
-		{
-			"Should create point at infinity without errors",
-			big.NewInt(5), big.NewInt(7),
-			false,
-		},
-		{
-			"Should return error when a and b are nil",
-			nil, nil,
-			true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := criptography.NewPointAtInfinity(tt.a, tt.b)
-			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("NewPointAtInfinity() failed: %v", err)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("NewPointAtInfinity() succeeded unexpectedly")
-			}
-		})
+	p := criptography.NewPointAtInfinity(fprime(5), fprime(7))
+	inf := ptInf(5, 7)
+	if !p.Equal(inf) {
+		t.Errorf("NewPointAtInfinity() = %v, want %v", p, inf)
 	}
 }
 
@@ -114,47 +89,47 @@ func TestAdditionPoint(t *testing.T) {
 	}{
 		{
 			"Should add without error one Point and one Point at infinity",
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(77)),
-			ptInf(big.NewInt(5), big.NewInt(7)),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(77)),
+			pt(5, 7, 18, 77),
+			ptInf(5, 7),
+			pt(5, 7, 18, 77),
 			false,
 		},
 		{
 			"Should add without error Points are additive inverse",
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(77)),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(-77)),
-			ptInf(big.NewInt(5), big.NewInt(7)),
+			pt(5, 7, 18, 77),
+			pt(5, 7, 18, -77),
+			ptInf(5, 7),
 			false,
 		},
 		{
 			"Should add without error Points for when x are differents",
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(2), big.NewInt(5)),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1)),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(3), big.NewInt(-7)),
+			pt(5, 7, 2, 5),
+			pt(5, 7, -1, -1),
+			pt(5, 7, 3, -7),
 			false,
 		},
 		{
 			"Should add without error the same point",
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1)),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(-1), big.NewInt(-1)),
-			pt(big.NewInt(5), big.NewInt(7), big.NewInt(18), big.NewInt(77)),
+			pt(5, 7, -1, -1),
+			pt(5, 7, -1, -1),
+			pt(5, 7, 18, 77),
 			false,
 		},
 		{
 			"Should add without error the same point, and y is zero, return point at infinity",
-			pt(big.NewInt(-1), big.NewInt(0), big.NewInt(1), big.NewInt(0)),
-			pt(big.NewInt(-1), big.NewInt(0), big.NewInt(1), big.NewInt(0)),
-			ptInf(big.NewInt(-1), big.NewInt(0)),
+			pt(-1, 0, 1, 0),
+			pt(-1, 0, 1, 0),
+			ptInf(-1, 0),
 			false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, error := tt.pointA.Add(tt.pointB)
-			if error != nil {
+			got, err := tt.pointA.Add(tt.pointB)
+			if err != nil {
 				if !tt.wantErr {
-					t.Errorf("Add() = %v, want %v", got, tt.want)
+					t.Errorf("Add() error = %v", err)
 				}
 				return
 			}

@@ -6,65 +6,69 @@ import (
 )
 
 var (
-	ErrNilCoordinates  = errors.New("use NewPointAtInfinity for points at infinity")
 	ErrNotOnCurve      = errors.New("point is not on the curve")
-	ErrNilCurveParams  = errors.New("a and b must not be nil")
 	ErrDifferentCurves = errors.New("points are not on the same curve")
 )
 
 type Point struct {
-	a *big.Int
-	b *big.Int
-	x *big.Int
-	y *big.Int
+	a FieldElement
+	b FieldElement
+	x *FieldElement
+	y *FieldElement
 }
 
-func NewPoint(a, b, x, y *big.Int) (Point, error) {
-	if x == nil || y == nil {
-		return Point{}, ErrNilCoordinates
-	}
-	p := Point{
-		a: new(big.Int).Set(a),
-		b: new(big.Int).Set(b),
-		x: new(big.Int).Set(x),
-		y: new(big.Int).Set(y),
-	}
+func NewPoint(a, b, x, y FieldElement) (Point, error) {
+	xFE, _ := NewFieldElement(x.Number, x.Prime)
+	yFE, _ := NewFieldElement(y.Number, y.Prime)
+	p := Point{a: a, b: b, x: &xFE, y: &yFE}
 	if !p.IsOnCurve() {
 		return Point{}, ErrNotOnCurve
 	}
 	return p, nil
 }
 
-func NewPointAtInfinity(a, b *big.Int) (Point, error) {
-	if a == nil || b == nil {
-		return Point{}, ErrNilCurveParams
+func NewPointAtInfinity(a, b FieldElement) Point {
+	return Point{a: a, b: b}
+}
+
+func (p *Point) tangentSlope() (FieldElement, error) {
+	// s = (3*x^2 + a) / (2*y)
+	x2, err := p.x.Pow(big.NewInt(2))
+	if err != nil {
+		return FieldElement{}, err
 	}
-	return Point{
-		a: new(big.Int).Set(a),
-		b: new(big.Int).Set(b),
-	}, nil
+	three, _ := NewFieldElement(big.NewInt(3), p.x.Prime)
+	num, err := three.Mult(x2)
+	if err != nil {
+		return FieldElement{}, err
+	}
+	num, err = num.Add(p.a)
+	if err != nil {
+		return FieldElement{}, err
+	}
+	two, _ := NewFieldElement(big.NewInt(2), p.x.Prime)
+	den, err := two.Mult(*p.y)
+	if err != nil {
+		return FieldElement{}, err
+	}
+	return num.Div(den)
 }
 
-func (p *Point) tangentSlope(s *big.Int) *big.Int {
-	quo := new(big.Int).Mul(p.x, p.x)
-	quo.Mul(quo, big.NewInt(3))
-	quo.Add(quo, p.a)
-	div := new(big.Int).Mul(p.y, big.NewInt(2))
-	s = new(big.Int).Div(quo, div)
-
-	return s
-}
-
-func (p *Point) slope(other Point, s *big.Int) *big.Int {
-	diffY := new(big.Int).Sub(other.y, p.y)
-	diffX := new(big.Int).Sub(other.x, p.x)
-	s = diffY.Div(diffY, diffX)
-
-	return s
+func (p *Point) slope(other Point) (FieldElement, error) {
+	// s = (y2 - y1) / (x2 - x1)
+	diffY, err := other.y.Sub(*p.y)
+	if err != nil {
+		return FieldElement{}, err
+	}
+	diffX, err := other.x.Sub(*p.x)
+	if err != nil {
+		return FieldElement{}, err
+	}
+	return diffY.Div(diffX)
 }
 
 func (p *Point) Add(other Point) (Point, error) {
-	if p.a.Cmp(other.a) != 0 || p.b.Cmp(other.b) != 0 {
+	if !p.a.Equal(other.a) || !p.b.Equal(other.b) {
 		return Point{}, ErrDifferentCurves
 	}
 	if p.x == nil {
@@ -73,29 +77,56 @@ func (p *Point) Add(other Point) (Point, error) {
 	if other.x == nil {
 		return *p, nil
 	}
-	if (p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) != 0) || (p.Equal(other) && p.y.Cmp(big.NewInt(0)) == 0) {
-		return NewPointAtInfinity(p.a, p.b)
+
+	zero, _ := NewFieldElement(big.NewInt(0), p.x.Prime)
+	if (p.x.Equal(*other.x) && !p.y.Equal(*other.y)) || (p.Equal(other) && p.y.Equal(zero)) {
+		return NewPointAtInfinity(p.a, p.b), nil
 	}
 
-	var s *big.Int
-
+	var s FieldElement
+	var err error
 	if p.Equal(other) {
-		s = p.tangentSlope(s)
+		s, err = p.tangentSlope()
 	} else {
-		s = p.slope(other, s)
+		s, err = p.slope(other)
+	}
+	if err != nil {
+		return Point{}, err
 	}
 
-	x3 := new(big.Int).Mul(s, s)
-	x3.Sub(x3, p.x).Sub(x3, other.x)
+	// x3 = s^2 - x1 - x2
+	s2, err := s.Pow(big.NewInt(2))
+	if err != nil {
+		return Point{}, err
+	}
+	x3, err := s2.Sub(*p.x)
+	if err != nil {
+		return Point{}, err
+	}
+	x3, err = x3.Sub(*other.x)
+	if err != nil {
+		return Point{}, err
+	}
 
-	y3 := new(big.Int).Mul(s, new(big.Int).Sub(p.x, x3))
-	y3.Sub(y3, p.y)
+	// y3 = s*(x1 - x3) - y1
+	x1SubX3, err := p.x.Sub(x3)
+	if err != nil {
+		return Point{}, err
+	}
+	y3, err := s.Mult(x1SubX3)
+	if err != nil {
+		return Point{}, err
+	}
+	y3, err = y3.Sub(*p.y)
+	if err != nil {
+		return Point{}, err
+	}
 
-	return NewPoint(new(big.Int).Set(p.a), new(big.Int).Set(p.b), x3, y3)
+	return NewPoint(p.a, p.b, x3, y3)
 }
 
 func (p *Point) Equal(other Point) bool {
-	if p.a.Cmp(other.a) != 0 || p.b.Cmp(other.b) != 0 {
+	if !p.a.Equal(other.a) || !p.b.Equal(other.b) {
 		return false
 	}
 	if p.x == nil && other.x == nil {
@@ -104,18 +135,30 @@ func (p *Point) Equal(other Point) bool {
 	if p.x == nil || other.x == nil {
 		return false
 	}
-	return p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) == 0
+	return p.x.Equal(*other.x) && p.y.Equal(*other.y)
 }
 
 func (p *Point) IsOnCurve() bool {
-	lhs := new(big.Int).Mul(p.y, p.y)
-
-	x3 := new(big.Int).Mul(p.x, p.x)
-	x3.Mul(x3, p.x)
-
-	ax := new(big.Int).Mul(p.a, p.x)
-
-	rhs := new(big.Int).Add(x3, ax)
-	rhs.Add(rhs, p.b)
-	return lhs.Cmp(rhs) == 0
+	// y^2 = x^3 + a*x + b
+	lhs, err := p.y.Pow(big.NewInt(2))
+	if err != nil {
+		return false
+	}
+	x3, err := p.x.Pow(big.NewInt(3))
+	if err != nil {
+		return false
+	}
+	ax, err := p.a.Mult(*p.x)
+	if err != nil {
+		return false
+	}
+	rhs, err := x3.Add(ax)
+	if err != nil {
+		return false
+	}
+	rhs, err = rhs.Add(p.b)
+	if err != nil {
+		return false
+	}
+	return lhs.Equal(rhs)
 }
