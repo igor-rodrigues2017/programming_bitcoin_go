@@ -64,33 +64,21 @@ func TestSumElements(t *testing.T) {
 		element1 criptography.FieldElement
 		element2 criptography.FieldElement
 		want     criptography.FieldElement
-		wantErr  bool
 	}{
 		{
 			"Should sum two fields without errors",
 			fe(7, 19), fe(8, 19), fe(15, 19),
-			false,
 		},
 		{
-			"Should return an error when are Fields different",
+			"Should return empty FieldElement when fields have different primes",
 			fe(7, 19), fe(8, 23),
 			criptography.FieldElement{},
-			true,
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := tt.element1.Add(tt.element2)
-			if gotErr != nil {
-				if !tt.wantErr {
-					t.Errorf("Add() elements failed: %v,", gotErr)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("Add() succeeded unexpectedly")
-			}
+			got := tt.element1.Add(tt.element2)
 			if !got.Equal(tt.want) {
 				t.Errorf("Add() = %v, want %v", got, tt.want)
 			}
@@ -104,33 +92,21 @@ func TestSubElements(t *testing.T) {
 		element1 criptography.FieldElement
 		element2 criptography.FieldElement
 		want     criptography.FieldElement
-		wantErr  bool
 	}{
 		{
 			"Should sub two fields without errors",
 			fe(7, 19), fe(8, 19), fe(18, 19),
-			false,
 		},
 		{
-			"Should return an error when are Fields different",
+			"Should return empty FieldElement when fields have different primes",
 			fe(7, 19), fe(8, 23),
 			criptography.FieldElement{},
-			true,
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := tt.element1.Sub(tt.element2)
-			if gotErr != nil {
-				if !tt.wantErr {
-					t.Errorf("Sub() elements failed: %v,", gotErr)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("Sub() succeeded unexpectedly")
-			}
+			got := tt.element1.Sub(tt.element2)
 			if !got.Equal(tt.want) {
 				t.Errorf("Sub() = %v, want %v", got, tt.want)
 			}
@@ -144,33 +120,21 @@ func TestMultElements(t *testing.T) {
 		element1 criptography.FieldElement
 		element2 criptography.FieldElement
 		want     criptography.FieldElement
-		wantErr  bool
 	}{
 		{
 			"Should mult two fields without errors",
 			fe(3, 13), fe(12, 13), fe(10, 13),
-			false,
 		},
 		{
-			"Should return an error when are Fields different",
+			"Should return empty FieldElement when fields have different primes",
 			fe(7, 19), fe(8, 23),
 			criptography.FieldElement{},
-			true,
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := tt.element1.Mult(tt.element2)
-			if gotErr != nil {
-				if !tt.wantErr {
-					t.Errorf("Mult() elements failed: %v,", gotErr)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("Mult() succeeded unexpectedly")
-			}
+			got := tt.element1.Mult(tt.element2)
 			if !got.Equal(tt.want) {
 				t.Errorf("Mult() = %v, want %v", got, tt.want)
 			}
@@ -184,29 +148,18 @@ func TestPowElements(t *testing.T) {
 		element1 criptography.FieldElement
 		pow      int64
 		want     criptography.FieldElement
-		wantErr  bool
 	}{
 		{
 			"Should pow field element without errors",
 			fe(3, 13), 3, fe(1, 13),
-			false,
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := tt.element1.Pow(big.NewInt(tt.pow))
-			if gotErr != nil {
-				if !tt.wantErr {
-					t.Errorf("pow() elements failed: %v,", gotErr)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("pow() succeeded unexpectedly")
-			}
+			got := tt.element1.Pow(big.NewInt(tt.pow))
 			if !got.Equal(tt.want) {
-				t.Errorf("pow() = %v, want %v", got, tt.want)
+				t.Errorf("Pow() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -218,29 +171,18 @@ func TestDivElements(t *testing.T) {
 		element1 criptography.FieldElement
 		divisor  criptography.FieldElement
 		want     criptography.FieldElement
-		wantErr  bool
 	}{
 		{
 			"Should division field element without errors",
 			fe(2, 19), fe(7, 19), fe(3, 19),
-			false,
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := tt.element1.Div(tt.divisor)
-			if gotErr != nil {
-				if !tt.wantErr {
-					t.Errorf("div() elements failed: %v,", gotErr)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("div() succeeded unexpectedly")
-			}
+			got := tt.element1.Div(tt.divisor)
 			if !got.Equal(tt.want) {
-				t.Errorf("div() = %v, want %v", got, tt.want)
+				t.Errorf("Div() = %v, want %v", got, tt.want)
 			}
 		})
 	}

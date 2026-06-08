@@ -2,6 +2,8 @@ package criptography
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"math/big"
 )
 
@@ -15,6 +17,13 @@ type Point struct {
 	b FieldElement
 	x *FieldElement
 	y *FieldElement
+}
+
+func (p Point) String() string {
+	if p.x == nil {
+		return fmt.Sprintf("Point(infinity)_(%v,%v)", p.a, p.b)
+	}
+	return fmt.Sprintf("Point(%v,%v)_(%v,%v)", p.x, p.y, p.a, p.b)
 }
 
 func NewPoint(a, b, x, y FieldElement) (Point, error) {
@@ -31,98 +40,64 @@ func NewPointAtInfinity(a, b FieldElement) Point {
 	return Point{a: a, b: b}
 }
 
-func (p *Point) tangentSlope() (FieldElement, error) {
+func (p *Point) tangentSlope() FieldElement {
 	// s = (3*x^2 + a) / (2*y)
-	x2, err := p.x.Pow(big.NewInt(2))
-	if err != nil {
-		return FieldElement{}, err
-	}
+	x2 := p.x.Pow(big.NewInt(2))
 	three, _ := NewFieldElement(big.NewInt(3), p.x.Prime)
-	num, err := three.Mult(x2)
-	if err != nil {
-		return FieldElement{}, err
-	}
-	num, err = num.Add(p.a)
-	if err != nil {
-		return FieldElement{}, err
-	}
+	num := three.Mult(x2)
+	num = num.Add(p.a)
 	two, _ := NewFieldElement(big.NewInt(2), p.x.Prime)
-	den, err := two.Mult(*p.y)
-	if err != nil {
-		return FieldElement{}, err
-	}
+	den := two.Mult(*p.y)
 	return num.Div(den)
 }
 
-func (p *Point) slope(other Point) (FieldElement, error) {
+func (p *Point) slope(other Point) FieldElement {
 	// s = (y2 - y1) / (x2 - x1)
-	diffY, err := other.y.Sub(*p.y)
-	if err != nil {
-		return FieldElement{}, err
-	}
-	diffX, err := other.x.Sub(*p.x)
-	if err != nil {
-		return FieldElement{}, err
-	}
+	diffY := other.y.Sub(*p.y)
+	diffX := other.x.Sub(*p.x)
 	return diffY.Div(diffX)
 }
 
-func (p *Point) Add(other Point) (Point, error) {
+func (p *Point) Add(other Point) Point {
 	if !p.a.Equal(other.a) || !p.b.Equal(other.b) {
-		return Point{}, ErrDifferentCurves
+		log.Println(ErrDifferentCurves)
+		return Point{}
 	}
 	if p.x == nil {
-		return other, nil
+		return other
 	}
 	if other.x == nil {
-		return *p, nil
+		return *p
 	}
 
 	zero, _ := NewFieldElement(big.NewInt(0), p.x.Prime)
 	if (p.x.Equal(*other.x) && !p.y.Equal(*other.y)) || (p.Equal(other) && p.y.Equal(zero)) {
-		return NewPointAtInfinity(p.a, p.b), nil
+		return NewPointAtInfinity(p.a, p.b)
 	}
 
 	var s FieldElement
-	var err error
 	if p.Equal(other) {
-		s, err = p.tangentSlope()
+		s = p.tangentSlope()
 	} else {
-		s, err = p.slope(other)
-	}
-	if err != nil {
-		return Point{}, err
+		s = p.slope(other)
 	}
 
 	// x3 = s^2 - x1 - x2
-	s2, err := s.Pow(big.NewInt(2))
-	if err != nil {
-		return Point{}, err
-	}
-	x3, err := s2.Sub(*p.x)
-	if err != nil {
-		return Point{}, err
-	}
-	x3, err = x3.Sub(*other.x)
-	if err != nil {
-		return Point{}, err
-	}
+	s2 := s.Pow(big.NewInt(2))
+	x3 := s2.Sub(*p.x)
+	x3 = x3.Sub(*other.x)
 
 	// y3 = s*(x1 - x3) - y1
-	x1SubX3, err := p.x.Sub(x3)
-	if err != nil {
-		return Point{}, err
-	}
-	y3, err := s.Mult(x1SubX3)
-	if err != nil {
-		return Point{}, err
-	}
-	y3, err = y3.Sub(*p.y)
-	if err != nil {
-		return Point{}, err
-	}
+	x1SubX3 := p.x.Sub(x3)
+	y3 := s.Mult(x1SubX3)
+	y3 = y3.Sub(*p.y)
 
-	return NewPoint(p.a, p.b, x3, y3)
+	result, err := NewPoint(p.a, p.b, x3, y3)
+	if err != nil {
+		log.Println(err)
+		return Point{}
+	}
+	return result
 }
 
 func (p *Point) Equal(other Point) bool {
@@ -140,25 +115,10 @@ func (p *Point) Equal(other Point) bool {
 
 func (p *Point) IsOnCurve() bool {
 	// y^2 = x^3 + a*x + b
-	lhs, err := p.y.Pow(big.NewInt(2))
-	if err != nil {
-		return false
-	}
-	x3, err := p.x.Pow(big.NewInt(3))
-	if err != nil {
-		return false
-	}
-	ax, err := p.a.Mult(*p.x)
-	if err != nil {
-		return false
-	}
-	rhs, err := x3.Add(ax)
-	if err != nil {
-		return false
-	}
-	rhs, err = rhs.Add(p.b)
-	if err != nil {
-		return false
-	}
+	lhs := p.y.Pow(big.NewInt(2))
+	x3 := p.x.Pow(big.NewInt(3))
+	ax := p.a.Mult(*p.x)
+	rhs := x3.Add(ax)
+	rhs = rhs.Add(p.b)
 	return lhs.Equal(rhs)
 }

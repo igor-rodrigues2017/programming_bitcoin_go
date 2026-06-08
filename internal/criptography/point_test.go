@@ -8,8 +8,8 @@ import (
 
 const testPrime = int64(10007)
 
-// fprime cria um FieldElement no campo testPrime, aceitando negativos via redução modular.
-// Ex: fprime(-1) → 10006, porque -1 ≡ p-1 (mod p).
+// fprime creates a FieldElement in the testPrime field, accepting negatives via modular reduction.
+// e.g.: fprime(-1) → 10006, because -1 ≡ p-1 (mod p).
 func fprime(n int64) criptography.FieldElement {
 	p := int64(testPrime)
 	return fe(((n%p)+p)%p, testPrime)
@@ -81,61 +81,46 @@ func TestNewPointAtInfinity(t *testing.T) {
 
 func TestAdditionPoint(t *testing.T) {
 	tests := []struct {
-		name    string
-		pointA  criptography.Point
-		pointB  criptography.Point
-		want    criptography.Point
-		wantErr bool
+		name   string
+		pointA criptography.Point
+		pointB criptography.Point
+		want   criptography.Point
 	}{
 		{
 			"Should add without error one Point and one Point at infinity",
 			pt(5, 7, 18, 77),
 			ptInf(5, 7),
 			pt(5, 7, 18, 77),
-			false,
 		},
 		{
 			"Should add without error Points are additive inverse",
 			pt(5, 7, 18, 77),
 			pt(5, 7, 18, -77),
 			ptInf(5, 7),
-			false,
 		},
 		{
 			"Should add without error Points for when x are differents",
 			pt(5, 7, 2, 5),
 			pt(5, 7, -1, -1),
 			pt(5, 7, 3, -7),
-			false,
 		},
 		{
 			"Should add without error the same point",
 			pt(5, 7, -1, -1),
 			pt(5, 7, -1, -1),
 			pt(5, 7, 18, 77),
-			false,
 		},
 		{
 			"Should add without error the same point, and y is zero, return point at infinity",
 			pt(-1, 0, 1, 0),
 			pt(-1, 0, 1, 0),
 			ptInf(-1, 0),
-			false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.pointA.Add(tt.pointB)
-			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("Add() error = %v", err)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("Add() succeeded unexpectedly")
-			}
+			got := tt.pointA.Add(tt.pointB)
 			if !got.Equal(tt.want) {
 				t.Errorf("Add() = %v, want %v", got, tt.want)
 			}
