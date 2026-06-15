@@ -2,29 +2,34 @@ package main
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/igor-rodrigues2017/programming_bitcoin_go/internal/criptography"
 )
 
 func main() {
-	var prime int64 = 223
-	a, _ := criptography.NewFieldElement(big.NewInt(0), big.NewInt(prime))
-	b, _ := criptography.NewFieldElement(big.NewInt(7), big.NewInt(prime))
-	x, _ := criptography.NewFieldElement(big.NewInt(192), big.NewInt(prime))
-	y, _ := criptography.NewFieldElement(big.NewInt(105), big.NewInt(prime))
-	point, _ := criptography.NewPoint(a, b, x, y)
+	point, err := criptography.NewPointFromString(
+		"0",
+		"7",
+		"79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+		"483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
+		"fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
+		16,
+	)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(point)
+}
 
-	x2, _ := criptography.NewFieldElement(big.NewInt(17), big.NewInt(prime))
-	y2, _ := criptography.NewFieldElement(big.NewInt(56), big.NewInt(prime))
-	point2, _ := criptography.NewPoint(a, b, x2, y2)
+func sumPoints() {
+	var prime int64 = 223
+	point, _ := criptography.NewPoint(0, 7, 192, 105, prime)
+	point2, _ := criptography.NewPoint(0, 7, 17, 56, prime)
 
 	sum := point.Add(point2)
 	fmt.Println(sum)
 
-	x3, _ := criptography.NewFieldElement(big.NewInt(47), big.NewInt(prime))
-	y3, _ := criptography.NewFieldElement(big.NewInt(71), big.NewInt(prime))
-	point3, _ := criptography.NewPoint(a, b, x3, y3)
+	point3, _ := criptography.NewPoint(0, 7, 47, 71, prime)
 
 	result := point3
 	for i := 1; i < 21; i++ {

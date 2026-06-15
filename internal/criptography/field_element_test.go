@@ -1,14 +1,13 @@
 package criptography_test
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/igor-rodrigues2017/programming_bitcoin_go/internal/criptography"
 )
 
 func fe(number, prime int64) criptography.FieldElement {
-	f, err := criptography.NewFieldElement(big.NewInt(number), big.NewInt(prime))
+	f, err := criptography.NewFieldElement(number, prime)
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +49,7 @@ func TestNewFieldElement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := criptography.NewFieldElement(big.NewInt(tt.number), big.NewInt(tt.prime))
+			got, gotErr := criptography.NewFieldElement(tt.number, tt.prime)
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("NewFieldElement() failed: %v", gotErr)
@@ -166,7 +165,7 @@ func TestPowElements(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.element1.Pow(big.NewInt(tt.pow))
+			got := tt.element1.Pow(tt.pow)
 			if !got.Equal(tt.want) {
 				t.Errorf("Pow() = %v, want %v", got, tt.want)
 			}

@@ -8,85 +8,113 @@ import (
 )
 
 type FieldElement struct {
-	Number *big.Int `json:"Number"`
-	Prime  *big.Int `json:"Prime"`
+	number *big.Int
+	prime  *big.Int
 }
 
-func NewFieldElement(number, prime *big.Int) (FieldElement, error) {
+func newFieldElement(number, prime *big.Int) (FieldElement, error) {
 	if number.Cmp(prime) >= 0 || number.Sign() < 0 {
 		return FieldElement{}, errors.New("number not in field range")
 	}
 	return FieldElement{
-		Number: new(big.Int).Set(number),
-		Prime:  new(big.Int).Set(prime),
+		number: new(big.Int).Set(number),
+		prime:  new(big.Int).Set(prime),
 	}, nil
 }
 
+func NewFieldElement(number, prime int64) (FieldElement, error) {
+	return newFieldElement(big.NewInt(number), big.NewInt(prime))
+}
+
+func NewFieldElementFromBig(number, prime *big.Int) (FieldElement, error) {
+	return newFieldElement(number, prime)
+}
+
+func NewFieldElementFromString(number, prime string, base int) (FieldElement, error) {
+	n, ok := new(big.Int).SetString(number, base)
+	if !ok {
+		return FieldElement{}, errors.New("invalid field element number")
+	}
+	p, ok := new(big.Int).SetString(prime, base)
+	if !ok {
+		return FieldElement{}, errors.New("invalid field element prime")
+	}
+	return newFieldElement(n, p)
+}
+
 func (f FieldElement) String() string {
-	if f.Number == nil {
+	if f.number == nil {
 		return "FieldElement(nil)"
 	}
-	return fmt.Sprintf("FieldElement_%v(%v)", f.Prime, f.Number)
+	return fmt.Sprintf("FieldElement_%v(%v)", f.prime, f.number)
 }
 
 func (f FieldElement) Equal(other FieldElement) bool {
-	if f.Number == nil || other.Number == nil {
-		return f.Number == nil && other.Number == nil
+	if f.number == nil || other.number == nil {
+		return f.number == nil && other.number == nil
 	}
-	return f.Number.Cmp(other.Number) == 0 && f.Prime.Cmp(other.Prime) == 0
+	return f.number.Cmp(other.number) == 0 && f.prime.Cmp(other.prime) == 0
 }
 
-func (f FieldElement) Pow(pow *big.Int) FieldElement {
-	expMod := new(big.Int).Sub(f.Prime, big.NewInt(1))
+func (f FieldElement) Pow(pow int64) FieldElement {
+	return f.powBig(big.NewInt(pow))
+}
+
+func (f FieldElement) PowBig(pow *big.Int) FieldElement {
+	return f.powBig(pow)
+}
+
+func (f FieldElement) powBig(pow *big.Int) FieldElement {
+	expMod := new(big.Int).Sub(f.prime, big.NewInt(1))
 	n := new(big.Int).Mod(pow, expMod)
-	result := new(big.Int).Exp(f.Number, n, f.Prime)
-	fe, _ := NewFieldElement(result, f.Prime)
+	result := new(big.Int).Exp(f.number, n, f.prime)
+	fe, _ := newFieldElement(result, f.prime)
 	return fe
 }
 
 func (f FieldElement) Mult(f2 FieldElement) FieldElement {
-	if f.Prime.Cmp(f2.Prime) != 0 {
+	if f.prime.Cmp(f2.prime) != 0 {
 		log.Println("cannot mult two numbers in different field")
 		return FieldElement{}
 	}
-	result := new(big.Int).Mul(f.Number, f2.Number)
-	result.Mod(result, f.Prime)
-	fe, _ := NewFieldElement(result, f.Prime)
+	result := new(big.Int).Mul(f.number, f2.number)
+	result.Mod(result, f.prime)
+	fe, _ := newFieldElement(result, f.prime)
 	return fe
 }
 
 func (f FieldElement) Sub(f2 FieldElement) FieldElement {
-	if f.Prime.Cmp(f2.Prime) != 0 {
+	if f.prime.Cmp(f2.prime) != 0 {
 		log.Println("cannot sub two numbers in different field")
 		return FieldElement{}
 	}
-	result := new(big.Int).Sub(f.Number, f2.Number)
-	result.Mod(result, f.Prime)
+	result := new(big.Int).Sub(f.number, f2.number)
+	result.Mod(result, f.prime)
 	if result.Sign() < 0 {
-		result.Add(result, f.Prime)
+		result.Add(result, f.prime)
 	}
-	fe, _ := NewFieldElement(result, f.Prime)
+	fe, _ := newFieldElement(result, f.prime)
 	return fe
 }
 
 func (f FieldElement) Add(f2 FieldElement) FieldElement {
-	if f.Prime.Cmp(f2.Prime) != 0 {
+	if f.prime.Cmp(f2.prime) != 0 {
 		log.Println("cannot add two numbers in different field")
 		return FieldElement{}
 	}
-	result := new(big.Int).Add(f.Number, f2.Number)
-	result.Mod(result, f.Prime)
-	fe, _ := NewFieldElement(result, f.Prime)
+	result := new(big.Int).Add(f.number, f2.number)
+	result.Mod(result, f.prime)
+	fe, _ := newFieldElement(result, f.prime)
 	return fe
 }
 
 func (f FieldElement) Div(f2 FieldElement) FieldElement {
-	if f.Prime.Cmp(f2.Prime) != 0 {
+	if f.prime.Cmp(f2.prime) != 0 {
 		log.Println("cannot div two numbers in different field")
 		return FieldElement{}
 	}
-	inverse := new(big.Int).Exp(f2.Number, new(big.Int).Sub(f.Prime, big.NewInt(2)), f.Prime)
-	result := new(big.Int).Mod(new(big.Int).Mul(f.Number, inverse), f.Prime)
-	fe, _ := NewFieldElement(result, f.Prime)
+	inverse := new(big.Int).Exp(f2.number, new(big.Int).Sub(f.prime, big.NewInt(2)), f.prime)
+	result := new(big.Int).Mod(new(big.Int).Mul(f.number, inverse), f.prime)
+	fe, _ := newFieldElement(result, f.prime)
 	return fe
 }
