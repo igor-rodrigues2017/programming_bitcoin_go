@@ -8,7 +8,10 @@ import (
 )
 
 func fe(number, prime int64) criptography.FieldElement {
-	f, _ := criptography.NewFieldElement(big.NewInt(number), big.NewInt(prime))
+	f, err := criptography.NewFieldElement(big.NewInt(number), big.NewInt(prime))
+	if err != nil {
+		panic(err)
+	}
 	return f
 }
 
@@ -29,6 +32,12 @@ func TestNewFieldElement(t *testing.T) {
 		{
 			"Should Return an error when number is bigger than prime",
 			32, 13,
+			criptography.FieldElement{},
+			true,
+		},
+		{
+			"Should Return an error when number is equal to prime",
+			13, 13,
 			criptography.FieldElement{},
 			true,
 		},

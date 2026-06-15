@@ -40,24 +40,6 @@ func NewPointAtInfinity(a, b FieldElement) Point {
 	return Point{a: a, b: b}
 }
 
-func (p *Point) tangentSlope() FieldElement {
-	// s = (3*x^2 + a) / (2*y)
-	x2 := p.x.Pow(big.NewInt(2))
-	three, _ := NewFieldElement(big.NewInt(3), p.x.Prime)
-	num := three.Mult(x2)
-	num = num.Add(p.a)
-	two, _ := NewFieldElement(big.NewInt(2), p.x.Prime)
-	den := two.Mult(*p.y)
-	return num.Div(den)
-}
-
-func (p *Point) slope(other Point) FieldElement {
-	// s = (y2 - y1) / (x2 - x1)
-	diffY := other.y.Sub(*p.y)
-	diffX := other.x.Sub(*p.x)
-	return diffY.Div(diffX)
-}
-
 func (p *Point) Add(other Point) Point {
 	if !p.a.Equal(other.a) || !p.b.Equal(other.b) {
 		log.Println(ErrDifferentCurves)
@@ -100,6 +82,20 @@ func (p *Point) Add(other Point) Point {
 	return result
 }
 
+func (p *Point) Mult(coefficient big.Int) Point {
+	coef := coefficient
+	current := *p
+	result := NewPointAtInfinity(p.a, p.b)
+	for coef.Cmp(big.NewInt(0)) > 0 {
+		if coef.Bit(0) == 1 {
+			result = result.Add(current)
+		}
+		current = current.Add(current)
+		coef.Rsh(&coef, 1)
+	}
+	return result
+}
+
 func (p *Point) Equal(other Point) bool {
 	if !p.a.Equal(other.a) || !p.b.Equal(other.b) {
 		return false
@@ -121,4 +117,22 @@ func (p *Point) IsOnCurve() bool {
 	rhs := x3.Add(ax)
 	rhs = rhs.Add(p.b)
 	return lhs.Equal(rhs)
+}
+
+func (p *Point) tangentSlope() FieldElement {
+	// s = (3*x^2 + a) / (2*y)
+	x2 := p.x.Pow(big.NewInt(2))
+	three, _ := NewFieldElement(big.NewInt(3), p.x.Prime)
+	num := three.Mult(x2)
+	num = num.Add(p.a)
+	two, _ := NewFieldElement(big.NewInt(2), p.x.Prime)
+	den := two.Mult(*p.y)
+	return num.Div(den)
+}
+
+func (p *Point) slope(other Point) FieldElement {
+	// s = (y2 - y1) / (x2 - x1)
+	diffY := other.y.Sub(*p.y)
+	diffX := other.x.Sub(*p.x)
+	return diffY.Div(diffX)
 }
