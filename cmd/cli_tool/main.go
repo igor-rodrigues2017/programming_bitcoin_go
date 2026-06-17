@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/igor-rodrigues2017/programming_bitcoin_go/internal/criptography"
 )
@@ -19,6 +20,15 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(point)
+
+	n, _ := new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
+	fmt.Println(point.MultBig(n))
+
+	coef := big.NewInt(2)
+	p := criptography.G.MultBig(coef)
+	fmt.Println(p)
+
+	fmt.Println(criptography.G.MultBig(criptography.N))
 }
 
 func sumPoints() {
